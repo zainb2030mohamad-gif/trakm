@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<title>متابعة المراجعة الجماعية</title>
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root{
+    --deep-green:#0b3d2e;
+    --mid-green:#145c41;
+    --light-green:#e9f3ec;
+    --gold:#c9a227;
+    --gold-light:#f3e6b8;
+    --cream:#190955;
+    --ink:#1c2b23;
+    --muted:#5c6d63;
+    --danger:#a3372f;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Cairo',sans-serif;
+    background:linear-gradient(180deg,#0b3d2e 0%, #0b3d2e 140px, var(--cream) 140px);
+    color:var(--ink);
+    padding:0 0 60px;
+    direction:rtl;
+  }
+  #capture{
+    max-width:1000px;
+    margin:0 auto;
+    background:var(--cream);
+  }
+  .top-bar{
+    padding:34px 40px 26px;
+    text-align:center;
+    position:relative;
+  }
+  .top-bar::before, .top-bar::after{
+    content:"";
+    position:absolute;
+    top:14px; bottom:14px;
+    width:2px;
+    background:linear-gradient(180deg, transparent, var(--gold), transparent);
+  }
+  .top-bar::before{ right:6%; }
+  .top-bar::after{ left:6%; }
+  .eyebrow{
+    color:var(--gold-light);
+    font-size:13px;
+    letter-spacing:3px;
+    margin:0 0 6px;
+    font-weight:600;
+  }
+  h1{
+    font-family:'Amiri', serif;
+    color:#fff;
+    font-size:34px;
+    margin:0 0 6px;
+    font-weight:700;
+  }
+  .tagline{
+    color:#cfe3d7;
+    font-size:15px;
+    margin:0;
+  }
+  .ornament{
+    text-align:center;
+    color:var(--gold);
+    font-size:20px;
+    letter-spacing:10px;
+    padding:14px 0 0;
+  }
+
+  .board{
+    background:#fff;
+    margin:-30px 24px 0;
+    border-radius:18px;
+    box-shadow:0 20px 45px rgba(11,61,46,.18);
+    padding:28px 26px 30px;
+    position:relative;
+    border:1px solid #e6ddb8;
+  }
+  .board::before{
+    content:"";
+    position:absolute;
+    inset:8px;
+    border:1px solid var(--gold-light);
+    border-radius:12px;
+    pointer-events:none;
+  }
+  .section-title{
+    font-size:16px;
+    font-weight:700;
+    color:var(--deep-green);
+    margin:0 0 14px;
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .section-title .dot{
+    width:8px;height:8px;border-radius:50%;background:var(--gold);display:inline-block;
+  }
+
+  table{
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:8px;
+  }
+  th, td{
+    border:1px solid #e2ded0;
+    text-align:center;
+    padding:0;
+  }
+  th{
+    background:var(--deep-green);
+    color:#fff;
+    font-size:13.5px;
+    font-weight:600;
+    padding:10px 6px;
+  }
+  th.name-col, td.name-col{
+    text-align:right;
+    padding-right:14px;
+    background:var(--light-green);
+    font-weight:600;
+    color:var(--deep-green);
+    min-width:150px;
+  }
+  th.name-col{ background:var(--mid-green); }
+  td.name-col input{
+    border:none;
+    background:transparent;
+    font-family:'Cairo',sans-serif;
+    font-weight:600;
+    color:var(--deep-green);
+    font-size:14px;
+    width:100%;
+    padding:10px 0;
+    text-align:right;
+  }
+  td.cell{
+    height:44px;
+    width:80px;
+    padding:0;
+  }
+
+  .row-actions, .add-row{
+    text-align:center;
+    font-size:12px;
+  }
+  .del-btn{
+    background:none;border:none;color:#b0503f;cursor:pointer;font-size:16px;
+  }
+  .toolbar{
+    display:flex;
+    gap:10px;
+    margin:16px 0 26px;
+    flex-wrap:wrap;
+  }
+  button.action{
+    font-family:'Cairo',sans-serif;
+    font-weight:700;
+    font-size:13.5px;
+    padding:9px 18px;
+    border-radius:8px;
+    border:1px solid var(--deep-green);
+    background:#fff;
+    color:var(--deep-green);
+    cursor:pointer;
+  }
+  button.action.primary{
+    background:var(--deep-green);
+    color:#fff;
+  }
+  button.action.gold{
+    background:var(--gold);
+    border-color:var(--gold);
+    color:#3a2e05;
+  }
+  button.action:hover{ opacity:.88; }
+
+  .legend{
+    display:flex;
+    gap:18px;
+    font-size:12.5px;
+    color:var(--muted);
+    margin:6px 2px 22px;
+    flex-wrap:wrap;
+  }
+  .legend span{ display:flex; align-items:center; gap:5px; }
+  .swatch{ width:13px;height:13px;border-radius:3px; display:inline-block; }
+
+  select.day-select{
+    width:100%;
+    height:44px;
+    border:none;
+    text-align:center;
+    font-family:'Cairo',sans-serif;
+    font-weight:800;
+    font-size:15px;
+    cursor:pointer;
+    -webkit-appearance:none;
+    appearance:none;
+    background-color:transparent;
+    color:inherit;
+  }
+  select.day-select:focus{ outline:2px solid var(--gold); outline-offset:-2px; }
+  td.cell.lvl-none{ background:#ffffff; color:#b9b3a0; }
+
+  .stats{
+    display:grid;
+    grid-template-columns:repeat(auto-fit, minmax(150px,1fr));
+    gap:12px;
+    margin-bottom:26px;
+  }
+  .stat-card{
+    background:var(--light-green);
+    border:1px solid #d7e8dc;
+    border-radius:12px;
+    padding:14px 16px;
+    text-align:center;
+  }
+  .stat-card .num{
+    font-size:24px;
+    font-weight:800;
+    color:var(--deep-green);
+  }
+  .stat-card .lbl{
+    font-size:12px;
+    color:var(--muted);
+    margin-top:2px;
+  }
+
+  .leaderboard{
+    background:var(--light-green);
+    border-radius:14px;
+    padding:18px 20px;
+    border:1px solid #d7e8dc;
+  }
+  .lb-row{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:8px 0;
+    border-bottom:1px solid #dbe9df;
+    font-size:14px;
+  }
+  .lb-row:last-child{ border-bottom:none; }
+  .lb-rank{
+    width:26px;height:26px;border-radius:50%;
+    background:var(--gold);
+    color:#3a2e05;
+    font-weight:800;
+    font-size:12.5px;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .lb-name{ font-weight:700; color:var(--deep-green); flex:1; }
+  .lb-bar-track{
+    flex:2;
+    background:#dfe9e2;
+    border-radius:6px;
+    height:8px;
+    overflow:hidden;
+  }
+  .lb-bar-fill{
+    height:100%;
+    background:linear-gradient(90deg, var(--mid-green), var(--gold));
+  }
+  .lb-pct{
+    width:40px;
+    text-align:left;
+    font-weight:700;
+    color:var(--mid-green);
+    font-size:13px;
+  }
+  .badge-star{ color:var(--gold); font-size:14px; }
+
+  .footer-note{
+    text-align:center;
+    color:var(--muted);
+    font-size:12px;
+    padding:20px 20px 0;
+  }
+  .footer-note b{ color:var(--deep-green); }
+
+  @media (max-width:640px){
+    h1{ font-size:24px; }
+    .board{ margin:-24px 10px 0; padding:18px 14px 22px; }
+    td.cell{ width:44px; font-size:16px; }
+    th{ font-size:11px; padding:6px 3px; }
+    th.name-col, td.name-col{ min-width:100px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="capture">
+  <div class="top-bar">
+    <p class="eyebrow">حلقة نبراس القرآن</p>
+    <h1>المراجعة التراكمية السنوية</h1>
+    <p class="tagline">﴿ وَلَقَدْ يَسَّرْنَا الْقُرْآنَ لِلذِّكْرِ فَهَلْ مِن مُّدَّكِرٍ ﴾</p>
+    <div class="ornament">۞ ۞ ۞</div>
+  </div>
+
+  <div class="board">
+
+    <table id="attTable">
+      <thead>
+        <tr id="headRow">
+          <th class="name-col">اسم الطالبة</th>
+          <!-- surah headers injected by JS -->
+        </tr>
+      </thead>
+      <tbody id="bodyRows">
+        <!-- rows injected by JS -->
+      </tbody>
+    </table>
+
+    <div class="legend">
+      <span><span class="swatch" style="background:#fff;border:1px solid #d8d2b8;"></span>أبيض = لم يُحدَّد بعد</span>
+      <span><span class="swatch" style="background:#c0392b;"></span>0-1-2 = ضعيف</span>
+      <span><span class="swatch" style="background:#1d7a4c;"></span>6 = حضور كامل</span>
+      <span style="color:var(--muted)">(اختاري رقم أيام الحضور من القائمة بكل خانة)</span>
+    </div>
+
+    <div class="toolbar">
+      <button class="action primary" onclick="addStudent()">+ إضافة طالبة</button>
+      <button class="action" onclick="addSurah()">+ إضافة سورة</button>
+      <button class="action gold" onclick="exportPDF()">📄 تحميل كملف PDF</button>
+      <button class="action" style="border-color:#a3372f;color:#a3372f" onclick="resetAll()">🗑 مسح الكل والبدء من جديد</button>
+    </div>
+
+    <div class="stats" id="statsBox"></div>
+
+    <p class="section-title"><span class="dot"></span>لوحة التميّز في الحضور</p>
+    <div class="leaderboard" id="leaderboard"></div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'nibras_annual_review_v1';
+
+function saveState(){
+  try{
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ surahs, students, status }));
+  }catch(e){ /* تجاهل إن تعذّر الحفظ */ }
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const data = JSON.parse(raw);
+      if(Array.isArray(data.surahs) && data.surahs.length) surahs = data.surahs;
+      if(Array.isArray(data.students)) students = data.students;
+      if(Array.isArray(data.status)) status = data.status;
+    }
+  }catch(e){ /* تجاهل إن كانت البيانات تالفة */ }
+}
+
+function resetAll(){
+  if(!confirm('هل تريدين حذف كل البيانات المحفوظة والبدء من جديد؟')) return;
+  surahs = ["الأعراف","الأنفال","التوبة","يونس","هود","يوسف"];
+  students = ["", "", "", "", ""];
+  status = students.map(()=>surahs.map(()=>null));
+  saveState();
+  render();
+}
+
+let surahs = ["الأعراف","الأنفال","التوبة","يونس","هود","يوسف"];
+let students = ["", "", "", "", ""];
+// status[studentIndex][surahIndex] = عدد أيام الحضور (0-6) أو null إذا لم يُحدَّد بعد
+let status = students.map(()=>surahs.map(()=>null));
+loadState();
+
+function render(){
+  saveState();
+  const headRow = document.getElementById('headRow');
+  headRow.innerHTML = '<th class="name-col">اسم الطالبة</th>';
+  surahs.forEach((s,si)=>{
+    const th = document.createElement('th');
+    th.innerHTML = s;
+    headRow.appendChild(th);
+  });
+
+  const body = document.getElementById('bodyRows');
+  body.innerHTML = '';
+  students.forEach((name, ri)=>{
+    const tr = document.createElement('tr');
+
+    const tdName = document.createElement('td');
+    tdName.className = 'name-col';
+    tdName.innerHTML = '<input value="'+ (name||'') +'" placeholder="اكتبي اسم الطالبة" oninput="updateName('+ri+',this.value)">';
+    tr.appendChild(tdName);
+
+    surahs.forEach((s,si)=>{
+      const td = document.createElement('td');
+      const val = status[ri][si];
+      td.className = 'cell' + (val===null ? ' lvl-none' : '');
+      if(val!==null){
+        const c = dayColor(val);
+        td.style.background = c.bg;
+        td.style.color = c.text;
+      }
+      const sel = document.createElement('select');
+      sel.className = 'day-select';
+      const blankOpt = document.createElement('option');
+      blankOpt.value = "";
+      blankOpt.textContent = "—";
+      if(val===null) blankOpt.selected = true;
+      sel.appendChild(blankOpt);
+      for(let d=0; d<=6; d++){
+        const opt = document.createElement('option');
+        opt.value = d;
+        opt.textContent = d;
+        if(d===val) opt.selected = true;
+        sel.appendChild(opt);
+      }
+      sel.onchange = (e)=>setCell(ri,si, e.target.value==="" ? null : parseInt(e.target.value));
+      td.appendChild(sel);
+      tr.appendChild(td);
+    });
+
+    body.appendChild(tr);
+    // delete row button under name via double click hint - simpler: add small remove link row
+  });
+
+  renderStats();
+  renderLeaderboard();
+}
+
+function dayColor(v){
+  // v من 0 إلى 6: أحمر عند الأدنى، يتدرج ويفتح تدريجياً، أخضر كامل عند 6
+  const hue = Math.round((v/6) * 130); // 0=أحمر -> 130=أخضر
+  const sat = 68;
+  const light = 46 + Math.round((v/6) * 20); // يغمق قليلاً بالأحمر ويعتدل بالأخضر
+  return {
+    bg: `hsl(${hue}, ${sat}%, ${light}%)`,
+    text: '#ffffff'
+  };
+}
+
+function setCell(ri,si,val){
+  status[ri][si] = val;
+  render();
+}
+function updateName(ri,val){
+  students[ri] = val;
+  saveState();
+}
+function addStudent(){
+  students.push("");
+  status.push(surahs.map(()=>null));
+  render();
+}
+function addSurah(){
+  const nm = prompt("اسم السورة الجديدة:");
+  if(!nm) return;
+  surahs.push(nm);
+  status.forEach(row=>row.push(null));
+  render();
+}
+function removeSurah(si){
+  if(surahs.length<=1) return;
+  surahs.splice(si,1);
+  status.forEach(row=>row.splice(si,1));
+  render();
+}
+
+function renderStats(){
+  const box = document.getElementById('statsBox');
+  let totalDays = 0, cellsCount = 0, fullWeeks = 0;
+  status.forEach(row=>row.forEach(v=>{
+    if(v===null) return;
+    totalDays += v;
+    cellsCount++;
+    if(v===6) fullWeeks++;
+  }));
+  const avg = cellsCount ? (totalDays/cellsCount) : 0;
+  const rate = cellsCount ? Math.round((totalDays/(cellsCount*6))*100) : 0;
+  box.innerHTML = `
+    <div class="stat-card"><div class="num">${students.length}</div><div class="lbl">عدد الطالبات</div></div>
+    <div class="stat-card"><div class="num">${surahs.length}</div><div class="lbl">عدد السور</div></div>
+    <div class="stat-card"><div class="num">${cellsCount? avg.toFixed(1) : '—'}</div><div class="lbl">متوسط أيام الحضور / 6</div></div>
+    <div class="stat-card"><div class="num">${cellsCount? rate+'%':'—'}</div><div class="lbl">نسبة الحضور العامة</div></div>
+  `;
+}
+
+function renderLeaderboard(){
+  const lb = document.getElementById('leaderboard');
+  const rows = students.map((name,ri)=>{
+    const decidedVals = status[ri].filter(v=>v!==null);
+    const totalDays = decidedVals.reduce((a,b)=>a+b,0);
+    const maxDays = decidedVals.length * 6;
+    const pct = maxDays>0 ? Math.round((totalDays/maxDays)*100) : 0;
+    const perfectWeeks = decidedVals.filter(v=>v===6).length;
+    return {name: name || '(بدون اسم)', pct, totalDays, perfectWeeks, decided: decidedVals.length};
+  });
+  rows.sort((a,b)=>b.pct-a.pct || b.totalDays-a.totalDays);
+
+  lb.innerHTML = rows.map((r,i)=>`
+    <div class="lb-row">
+      <div class="lb-rank">${i+1}</div>
+      <div class="lb-name">${r.name} ${r.perfectWeeks>0 ? '<span class="badge-star">★ '+r.perfectWeeks+' أسبوع كامل</span>' : ''}</div>
+      <div class="lb-bar-track"><div class="lb-bar-fill" style="width:${r.pct}%"></div></div>
+      <div class="lb-pct">${r.decided>0 ? r.pct+'%' : '—'}</div>
+    </div>
+  `).join('');
+}
+
+function exportPDF(){
+  html2canvas(document.getElementById('capture'), {backgroundColor:'#faf6ec', scale:2}).then(canvas=>{
+    const imgData = canvas.toDataURL('image/png');
+    const { jsPDF } = window.jspdf;
+    const pxToMm = 0.264583;
+    const pdfWidth = canvas.width * pxToMm;
+    const pdfHeight = canvas.height * pxToMm;
+    const orientation = pdfWidth > pdfHeight ? 'l' : 'p';
+    const pdf = new jsPDF({ orientation, unit:'mm', format:[pdfWidth, pdfHeight] });
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('المراجعة_التراكمية_السنوية.pdf');
+  });
+}
+
+render();
+window.addEventListener('beforeunload', saveState);
+</script>
+
+</body>
+</html>
